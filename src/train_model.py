@@ -15,6 +15,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, classification_report
+from mlflow.tracking import MlflowClient
+from mlflow.exceptions import MlflowException
 
 # Timer
 start_time = time.time()
@@ -22,10 +24,20 @@ print("🚀 Iniciando pipeline...")
 
 # Configuração do MLflow
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+ARTIFACT_URI = "s3://quantumfinance-mlflow-artifacts/"
 EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "QuantumFinance-CreditScore")
 API_DEPLOY_HOOK = os.getenv("API_DEPLOY_HOOK", "http://localhost:8000/trigger-deploy")
 
+# Configura endpoint da AWS para MLflow
+os.environ["MLFLOW_S3_ENDPOINT_URL"] = "https://s3.amazonaws.com"
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
+# Cria experimento com bucket remoto se não existir
+try:
+    mlflow.create_experiment(EXPERIMENT_NAME, artifact_location=ARTIFACT_URI)
+except MlflowException:
+    pass  # Experimento já existe
+
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 # Leitura dos dados
@@ -60,7 +72,6 @@ preprocessor = ColumnTransformer([
     ("num", numeric_transformer, num_features),
     ("cat", categorical_transformer, cat_features)
 ])
-
 pipeline = Pipeline([
     ("preprocessor", preprocessor),
     ("classifier", RandomForestClassifier(n_estimators=20, random_state=42))
@@ -82,8 +93,7 @@ with mlflow.start_run():
     model_name = "quantumfinance-credit-score-model"
     result = mlflow.register_model(f"runs:/{mlflow.active_run().info.run_id}/model", model_name)
 
-    # Espera a transição de estágio e define como 'Production'
-    from mlflow.tracking import MlflowClient
+    # Promove para Production e arquiva versões anteriores
     client = MlflowClient()
     client.transition_model_version_stage(
         name=model_name,
@@ -113,12 +123,11 @@ with mlflow.start_run():
         key=os.path.getmtime,
         reverse=True
     )
-
     for old_model in model_files[3:]:
         os.remove(old_model)
         print(f"🗑️ Modelo antigo removido: {old_model}")
 
-    # Trigger de atualização da API
+    # Trigger da API (opcional)
     try:
         response = requests.post(API_DEPLOY_HOOK)
         print(f"🔔 API notificada com status {response.status_code}")
