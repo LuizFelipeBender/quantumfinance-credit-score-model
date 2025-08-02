@@ -1,0 +1,20 @@
+name: Notify API of New Model Version
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify-api:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Enviar notificação para a API
+      run: |
+        curl -X POST https://16h3b2a35d.execute-api.us-east-1.amazonaws.com/update-model \
+          -H "Authorization: Bearer ${{ secrets.API_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "message": "Novo modelo disponível",
+            "model_source": "mlflow://production/quantumfinance-credit-score",
+            "commit": "${{ github.sha }}"
+          }'
