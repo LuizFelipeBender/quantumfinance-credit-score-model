@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 permissions:
-  id-token: write  # Necessário para autenticação OIDC
-  contents: read   # Necessário para checkout
+  id-token: write     # Necessário para autenticação OIDC
+  contents: read      # Necessário para o checkout do repositório
 
 jobs:
   train-and-report:
@@ -30,7 +30,7 @@ jobs:
       - name: 🔐 Autenticar com AWS via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::<ID_CONTA>:role/github-actions-mlflow
+          role-to-assume: arn:aws:iam::664406282152:role/QuantumFinanceModel
           aws-region: us-east-1
 
       - name: 🧪 Instalar dependências
