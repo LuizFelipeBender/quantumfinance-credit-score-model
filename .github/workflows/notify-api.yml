@@ -1,20 +1,19 @@
-name: Notify API of New Model Version
+# .github/workflows/notify-api.yml
+
+name: 🔔 Notificar API após novo modelo
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["📈 Treinamento e Relatório MLflow"]
+    types:
+      - completed
 
 jobs:
   notify-api:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
     steps:
-    - name: Enviar notificação para a API
-      run: |
-        curl -X POST https://16h3b2a35d.execute-api.us-east-1.amazonaws.com/update-model \
-          -H "Authorization: Bearer ${{ secrets.API_TOKEN }}" \
-          -H "Content-Type: application/json" \
-          -d '{
-            "message": "Novo modelo disponível",
-            "model_source": "mlflow://production/quantumfinance-credit-score",
-            "commit": "${{ github.sha }}"
-          }'
+      - name: 🔔 Enviar notificação para API
+        run: |
+          curl -X POST ${{ secrets.API_DEPLOY_HOOK }}

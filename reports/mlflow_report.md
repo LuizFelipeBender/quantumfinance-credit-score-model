@@ -1,8 +1,8 @@
 # 📄 MLflow Experimento - QuantumFinance
 
-**Data:** 2025-08-01 23:44:38  
+**Data:** 2025-08-02 00:49:38  
 **Accuracy:** 0.7488  
-**Run ID:** eb4302e9dff6434fa3d8d7d0085add70  
-**Modelo:** `runs:/eb4302e9dff6434fa3d8d7d0085add70/model`
+**Run ID:** d7bdccfb0c124ea4ae17e9c4ea229014  
+**Modelo:** `runs:/d7bdccfb0c124ea4ae17e9c4ea229014/model`
 
 🧪 Relatório gerado automaticamente via GitHub Actions.

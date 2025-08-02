@@ -1,2 +1,32 @@
 data/raw/train.csv
 data/raw/test.csv
+# DVC
+*.dvc
+.dvc/
+.cache/
+
+# Artefatos do MLflow
+mlruns/
+mlartifacts/
+
+# Modelos treinados locais
+models/
+*.pkl
+*.joblib
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+
+# Outros
+*.log
+.env
+.env.*
