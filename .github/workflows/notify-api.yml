@@ -1,19 +1,18 @@
-# .github/workflows/notify-api.yml
-
-name: 🔔 Notificar API após novo modelo
+name: Notify API Repo on Model Update
 
 on:
-  workflow_run:
-    workflows: ["📈 Treinamento e Relatório MLflow"]
-    types:
-      - completed
+  push:
+    branches:
+      - main
 
 jobs:
-  notify-api:
+  notify:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: 🔔 Enviar notificação para API
+      - name: Trigger redeploy on API repo
         run: |
-          curl -X POST ${{ secrets.API_DEPLOY_HOOK }}
+          curl -X POST https://api.github.com/repos/LuizFelipeBender/quantumfinance-credit-score-api/dispatches \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}" \
+          -d '{"event_type": "redeploy-api"}'
