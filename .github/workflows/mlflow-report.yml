@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  id-token: write  # Necessário para autenticação OIDC
+  contents: read   # Necessário para checkout
+
 jobs:
   train-and-report:
     runs-on: ubuntu-latest
@@ -23,10 +27,20 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: 🔐 Autenticar com AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<ID_CONTA>:role/github-actions-mlflow
+          aws-region: us-east-1
+
       - name: 🧪 Instalar dependências
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install dvc[s3]
+
+      - name: 📦 Baixar dados versionados com DVC (S3)
+        run: dvc pull
 
       - name: 🗂️ Criar pastas para MLflow
         run: |
@@ -39,7 +53,7 @@ jobs:
             --backend-store-uri sqlite:///mlflow.db \
             --default-artifact-root ./mlartifacts \
             --host 127.0.0.1 --port 5000 > mlflow.log 2>&1 &
-          sleep 10  # Espera o MLflow subir
+          sleep 10
 
       - name: 📊 Rodar pipeline de treino com MLflow
         run: python src/train_model.py
