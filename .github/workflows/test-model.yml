@@ -2,13 +2,9 @@ name: Test Credit Score Model
 
 on:
   push:
-    paths:
-      - '**.py'
-      - 'tests/**'
+    branches: [ master ]  # Executa em qualquer push para a branch master
   pull_request:
-    paths:
-      - '**.py'
-      - 'tests/**'
+    branches: [ master ]  # Executa em PRs para a master
 
 jobs:
   test:
