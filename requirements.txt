@@ -2,3 +2,9 @@ pandas
 scikit-learn==1.6.1
 mlflow
 joblib
+fastapi
+uvicorn
+slowapi
+streamlit
+requests
+httpx
