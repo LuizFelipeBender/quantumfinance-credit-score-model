@@ -77,6 +77,21 @@ with mlflow.start_run():
     mlflow.log_metric("accuracy", acc)
     mlflow.sklearn.log_model(pipeline, "model")
 
+    model_name = "quantumfinance-credit-score-model"
+    result = mlflow.register_model(f"runs:/{mlflow.active_run().info.run_id}/model", model_name)
+
+    # Espera a transição de estágio e define como 'Production'
+    from mlflow.tracking import MlflowClient
+    client = MlflowClient()
+    client.transition_model_version_stage(
+        name=model_name,
+        version=result.version,
+        stage="Production",
+        archive_existing_versions=True
+    )
+
+    print(f"📦 Modelo versionado como {model_name}, versão {result.version} (Production)")
+
     print(f"\n🎯 Acurácia: {acc:.4f}")
     print("📊 Classification Report:\n", classification_report(y_test, preds))
 

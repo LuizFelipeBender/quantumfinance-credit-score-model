@@ -9,11 +9,6 @@ data/raw/test.csv
 mlruns/
 mlartifacts/
 
-# Modelos treinados locais
-models/
-*.pkl
-*.joblib
-
 # Python cache
 __pycache__/
 *.py[cod]
