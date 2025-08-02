@@ -2,9 +2,9 @@ name: Test Credit Score Model
 
 on:
   push:
-    branches: [ master ]  # Executa em qualquer push para a branch master
+    branches: [ test ]  # Executa em qualquer push para a branch test
   pull_request:
-    branches: [ master ]  # Executa em PRs para a master
+    branches: [ test ]  # Executa em PRs para a test
 
 jobs:
   test:
