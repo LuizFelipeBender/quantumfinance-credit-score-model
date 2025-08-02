@@ -2,6 +2,8 @@ import os
 import time
 import joblib
 import requests
+import shutil
+import glob
 import pandas as pd
 import mlflow
 import mlflow.sklearn
@@ -91,14 +93,30 @@ with mlflow.start_run():
     )
 
     print(f"📦 Modelo versionado como {model_name}, versão {result.version} (Production)")
-
     print(f"\n🎯 Acurácia: {acc:.4f}")
     print("📊 Classification Report:\n", classification_report(y_test, preds))
 
-    # Salva localmente
+    # Salva localmente com versionamento
     os.makedirs("models", exist_ok=True)
-    joblib.dump(pipeline, "models/model.pkl")
-    print("💾 Modelo salvo em models/model.pkl")
+    versioned_path = f"models/model_v{result.version}.pkl"
+    latest_path = "models/model_latest.pkl"
+
+    joblib.dump(pipeline, versioned_path)
+    print(f"💾 Modelo salvo como {versioned_path}")
+
+    shutil.copy(versioned_path, latest_path)
+    print(f"📋 Cópia salva como {latest_path}")
+
+    # Mantém apenas os últimos 3 modelos locais
+    model_files = sorted(
+        glob.glob("models/model_v*.pkl"),
+        key=os.path.getmtime,
+        reverse=True
+    )
+
+    for old_model in model_files[3:]:
+        os.remove(old_model)
+        print(f"🗑️ Modelo antigo removido: {old_model}")
 
     # Trigger de atualização da API
     try:
