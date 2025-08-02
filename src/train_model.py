@@ -4,6 +4,7 @@ import joblib
 import requests
 import shutil
 import glob
+import boto3
 import pandas as pd
 import mlflow
 import mlflow.sklearn
@@ -15,29 +16,19 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, classification_report
-from mlflow.tracking import MlflowClient
-from mlflow.exceptions import MlflowException
 
 # Timer
 start_time = time.time()
 print("🚀 Iniciando pipeline...")
 
-# Configuração do MLflow
+# Configurações
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-ARTIFACT_URI = "s3://quantumfinance-mlflow-artifacts/"
 EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "QuantumFinance-CreditScore")
 API_DEPLOY_HOOK = os.getenv("API_DEPLOY_HOOK", "http://localhost:8000/trigger-deploy")
+S3_BUCKET = "quantumfinance-mlflow-artifacts"
+S3_MODELS_PREFIX = "models/"
 
-# Configura endpoint da AWS para MLflow
-os.environ["MLFLOW_S3_ENDPOINT_URL"] = "https://s3.amazonaws.com"
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-
-# Cria experimento com bucket remoto se não existir
-try:
-    mlflow.create_experiment(EXPERIMENT_NAME, artifact_location=ARTIFACT_URI)
-except MlflowException:
-    pass  # Experimento já existe
-
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 # Leitura dos dados
@@ -51,7 +42,7 @@ y = df["Credit_Score"]
 if "Type_of_Loan" in X.columns:
     X["Type_of_Loan"] = X["Type_of_Loan"].fillna("Unknown").astype(str).apply(lambda x: x.split(",")[0].strip())
 
-# Identificação de colunas
+# Colunas categóricas e numéricas
 cat_features = X.select_dtypes(include="object").columns.tolist()
 num_features = X.select_dtypes(include=["float64", "int64"]).columns.tolist()
 
@@ -61,9 +52,7 @@ for col in cat_features:
     X[col] = X[col].where(X[col].isin(top), other="Rare")
 
 # Pipelines
-numeric_transformer = Pipeline([
-    ("imputer", SimpleImputer(strategy="mean"))
-])
+numeric_transformer = Pipeline([("imputer", SimpleImputer(strategy="mean"))])
 categorical_transformer = Pipeline([
     ("imputer", SimpleImputer(strategy="most_frequent")),
     ("ordinal", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1))
@@ -77,7 +66,7 @@ pipeline = Pipeline([
     ("classifier", RandomForestClassifier(n_estimators=20, random_state=42))
 ])
 
-# Split e treinamento
+# Split e treino
 print("✂️ Split treino/teste...")
 X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
 
@@ -93,7 +82,7 @@ with mlflow.start_run():
     model_name = "quantumfinance-credit-score-model"
     result = mlflow.register_model(f"runs:/{mlflow.active_run().info.run_id}/model", model_name)
 
-    # Promove para Production e arquiva versões anteriores
+    from mlflow.tracking import MlflowClient
     client = MlflowClient()
     client.transition_model_version_stage(
         name=model_name,
@@ -106,28 +95,29 @@ with mlflow.start_run():
     print(f"\n🎯 Acurácia: {acc:.4f}")
     print("📊 Classification Report:\n", classification_report(y_test, preds))
 
-    # Salva localmente com versionamento
+    # Salva localmente
     os.makedirs("models", exist_ok=True)
     versioned_path = f"models/model_v{result.version}.pkl"
     latest_path = "models/model_latest.pkl"
 
     joblib.dump(pipeline, versioned_path)
-    print(f"💾 Modelo salvo como {versioned_path}")
-
     shutil.copy(versioned_path, latest_path)
-    print(f"📋 Cópia salva como {latest_path}")
+    print(f"💾 Modelos salvos localmente.")
 
-    # Mantém apenas os últimos 3 modelos locais
-    model_files = sorted(
-        glob.glob("models/model_v*.pkl"),
-        key=os.path.getmtime,
-        reverse=True
-    )
+    # Mantém só os últimos 3 modelos locais
+    model_files = sorted(glob.glob("models/model_v*.pkl"), key=os.path.getmtime, reverse=True)
     for old_model in model_files[3:]:
         os.remove(old_model)
         print(f"🗑️ Modelo antigo removido: {old_model}")
 
-    # Trigger da API (opcional)
+    # Upload para S3
+    s3 = boto3.client("s3")
+    for file_path in [versioned_path, latest_path]:
+        key = S3_MODELS_PREFIX + os.path.basename(file_path)
+        s3.upload_file(file_path, S3_BUCKET, key)
+        print(f"☁️ Upload realizado: s3://{S3_BUCKET}/{key}")
+
+    # Notifica API
     try:
         response = requests.post(API_DEPLOY_HOOK)
         print(f"🔔 API notificada com status {response.status_code}")
