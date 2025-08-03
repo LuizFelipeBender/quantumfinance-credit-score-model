@@ -1,10 +1,11 @@
-# tests/test_model.py
-
 import joblib
 import pandas as pd
+import os
 
 def load_model():
-    return joblib.load("models/model.pkl")  
+    current_dir = os.path.dirname(__file__)
+    model_path = os.path.abspath(os.path.join(current_dir, "..", "models", "model.pkl"))
+    return joblib.load(model_path)
 
 def test_model_loads():
     model = load_model()
@@ -34,8 +35,39 @@ def test_model_prediction_shape():
         "Monthly_Balance": 1200,
         "Occupation": "Engineer",
         "Monthly_Inhand_Salary": 5000,
-        "Credit_Utilization_Ratio": 0.35  # ← FALTAVA ESSA!
+        "Credit_Utilization_Ratio": 0.35
     }])
 
     pred = model.predict(sample)
     assert len(pred) == 1
+
+def test_prediction_for_risky_client():
+    model = load_model()
+    sample = pd.DataFrame([{
+        "Annual_Income": 10000.0,
+        "Monthly_Inhand_Salary": 500.0,
+        "Num_Bank_Accounts": 8,
+        "Num_Credit_Card": 6,
+        "Interest_Rate": 28.0,
+        "Num_of_Loan": 5,
+        "Delay_from_due_date": 30,
+        "Num_of_Delayed_Payment": 12,
+        "Changed_Credit_Limit": 50000.0,
+        "Num_Credit_Inquiries": 0,
+        "Credit_Utilization_Ratio": 0.0,
+        "Outstanding_Debt": 0.0,
+        "Monthly_Balance": 0.0,
+        "Age": 18,
+        "Total_EMI_per_month": 0.0,
+        "Type_of_Loan": "Personal Loan",
+        "Payment_Behaviour": "Low_spent_Large_value_payments",
+        "Amount_invested_monthly": 0.0,
+        "Credit_Mix": "Bad",
+        "Payment_of_Min_Amount": "No",
+        "Credit_History_Age": "1 Year and 2 Months",
+        "Occupation": "Unemployed"
+    }])
+
+    pred = model.predict(sample)
+    assert len(pred) == 1
+    print(f"🧪 Previsão do modelo para perfil de risco: {pred[0]}")
