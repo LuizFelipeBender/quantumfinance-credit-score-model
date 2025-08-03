@@ -3,3 +3,8 @@ scikit-learn==1.6.1
 mlflow
 joblib
 imblearn
+seaborn
+gdown
+boto3
+requests
+pytest
