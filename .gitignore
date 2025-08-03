@@ -34,3 +34,8 @@ __pycache__/
 *.log
 .env
 .env.*
+mlflow.db
+
+confusion_matrix.png
+feature_importance.png
+models/model.pkl
