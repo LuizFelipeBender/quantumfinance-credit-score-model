@@ -37,7 +37,7 @@ mlflow.set_experiment(EXPERIMENT_NAME)
 
 # Leitura e preparação dos dados
 print("📥 Lendo CSV...")
-df = pd.read_csv("../data/raw/train.csv", low_memory=False)
+df = pd.read_csv("data/raw/train.csv", low_memory=False)
 df = df[df["Credit_Score"].isin(["Good", "Standard", "Poor"])]
 X = df.drop(columns=["Credit_Score", "ID", "Customer_ID", "Name", "SSN", "Month"])
 y = df["Credit_Score"]
